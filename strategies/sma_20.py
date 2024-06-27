@@ -1,6 +1,6 @@
 from typing import Optional
 from logger import create_logger
-from sma import SMA
+from strategies.sma import SMA
 from strategies.strategy import Buy, Strategy
 
 logger = create_logger("Sma20")
