@@ -1,0 +1,20 @@
+{
+    "settings": {
+        "tradeSymbol": "XBTCHF",
+        "tradeInterval": 5,
+        "dummyMode": true
+    },
+    "strategies": [
+        {
+            "type": "simple_dca",
+            "amount": 1000,
+            "day": "Mon",
+            "hour": "18"
+        },
+        {
+            "type": "sma_20",
+            "amount": 1000,
+            "minDipPercentage": 0.00005
+        }
+    ]
+}
