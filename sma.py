@@ -1,3 +1,9 @@
+from logger import create_logger
+
+
+logger = create_logger("SMA")
+
+
 class SMA:
     def __init__(self, sma_length=20):
         self._sma_values = [0.0, 0.0, 0.0]
@@ -42,6 +48,6 @@ class SMA:
         return self._sma_values[1] - self._sma_values[2]
 
     def print(self):
-        print(
+        logger.info(
             f"SMA {self._sma_length}: {self._sma_values[2]} / {self._sma_values[1]} / {self._sma_values[0]}: {self.dip()}"
         )

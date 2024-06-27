@@ -1,10 +1,14 @@
+from authentication import Authentication
 from client import Client
+from settings import Settings
 from strategies.strategies_factory import make_strategies
 from trading_bot import TradingBot
-from util import Authentication, Settings
+from logger import logger
 
 
 def main():
+    logger.info("Starting up")
+
     settings = Settings("settings.json")
     authentication = Authentication("authentication.json")
 
@@ -17,6 +21,8 @@ def main():
     )
 
     trading_bot.run()
+
+    logger.info("Finished")
 
 
 if __name__ == "__main__":

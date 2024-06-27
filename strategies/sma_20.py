@@ -1,6 +1,9 @@
 from typing import Optional
+from logger import create_logger
 from sma import SMA
 from strategies.strategy import Buy, Strategy
+
+logger = create_logger("Sma20")
 
 
 class Sma20(Strategy):
@@ -18,6 +21,9 @@ class Sma20(Strategy):
 
                 dip = abs(self._sma.dip())
                 dip_percentage = dip / self._sma.values[0]
+
+                logger.debug(f"Dip: {dip}")
+                logger.debug(f"Dip percentage: {dip_percentage}")
 
                 if dip_percentage > self._min_dip_percentage:
                     return Buy(self._amount)

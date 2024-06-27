@@ -1,5 +1,8 @@
 from typing import Optional
+from logger import create_logger
 from strategies.strategy import Buy, Strategy
+
+logger = create_logger("SimpleDCA")
 
 
 class SimpleDCA(Strategy):

@@ -1,7 +1,10 @@
 from datetime import datetime
+from logger import create_logger
 import time
 from client import Client
 from strategies.strategy import Buy
+
+logger = create_logger("TradingBot")
 
 
 class TradingBot:
@@ -13,6 +16,7 @@ class TradingBot:
         self._dummy_mode = dummy_mode
 
     def run(self):
+        logger.info("Starting main loop")
         is_running = True
         while is_running:
             try:
@@ -24,23 +28,24 @@ class TradingBot:
                     for strategy in self._strategies:
                         buy = strategy.update(result)
                         if buy:
-                            print(
+                            logger.info(
                                 f"Strategy {strategy.TYPE} wants to buy {buy.amount} CHF"
                             )
                             self._buy(buy)
                 except Exception as error:
-                    print(f"Error: {error}")
+                    logger.exception(f"Error: {error}")
 
                 diff = datetime.now() - now
 
                 sleep_time = self._waiting_time - diff.seconds
+                logger.debug(f"Sleeping for {sleep_time} seconds")
                 time.sleep(sleep_time)
             except KeyboardInterrupt:
                 is_running = False
 
     def _buy(self, buy: Buy):
         if self._dummy_mode:
-            print(f"Dummy buy: {buy.amount}")
+            logger.info(f"Dummy buy: {buy.amount}")
             return
 
         order_book = self._client.get_order_book()

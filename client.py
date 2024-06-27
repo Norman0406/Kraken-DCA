@@ -1,5 +1,18 @@
+import base64
+import hashlib
+import hmac
+import json
+import time
 from typing import List, NamedTuple
-from util import Authentication, Settings, make_api_call
+import urllib.request
+from authentication import Authentication
+from logger import create_logger
+from settings import Settings
+
+logger = create_logger("Client")
+
+API_ENDPOINT = "https://api.kraken.com"
+USER_AGENT = "kraken_dca_agent"
 
 
 class OrderBookEntry(NamedTuple):
@@ -19,25 +32,63 @@ class Client:
 
         self.check_status()
 
+    def _make_api_call(self, path: str, arguments: dict = {}):
+        logger.debug(
+            f"Calling {path}"
+            + (f" with arguments {arguments}" if len(arguments) > 0 else "")
+        )
+
+        nonce = str(int(time.time() * 1000))
+        params = f"nonce={nonce}"
+
+        for key, value in arguments.items():
+            params += f"&{key}={value}"
+
+        api_sha256 = hashlib.sha256(nonce.encode("utf8") + params.encode("utf8"))
+        api_hmac = hmac.new(
+            base64.b64decode(self._authentication.api_key_private),
+            path.encode("utf8") + api_sha256.digest(),
+            hashlib.sha512,
+        )
+        api_signature = base64.b64encode(api_hmac.digest())
+
+        try:
+            api_request = urllib.request.Request(
+                f"{API_ENDPOINT}{path}", params.encode("utf8")
+            )
+            api_request.add_header("API-Key", self._authentication.api_key_public)
+            api_request.add_header("API-Sign", api_signature)
+            api_request.add_header("User-Agent", USER_AGENT)
+            api_response = urllib.request.urlopen(api_request).read().decode()
+            api_data = json.loads(api_response)
+        except Exception as error:
+            logger.exception(f"Failed: {error}")
+            raise error
+        else:
+            error = api_data["error"]
+
+            if len(error) == 0:
+                return api_data["result"]
+            else:
+                logger.exception(f"Error: {error}")
+                raise Exception(error)
+
     def check_status(self):
-        result = make_api_call(
-            authentication=self._authentication,
+        result = self._make_api_call(
             path="/0/public/SystemStatus",
         )
         if result["status"] != "online":
             raise Exception("Kraken is not operational")
 
     def get_ohlc_data(self, interval):
-        result = make_api_call(
-            authentication=self._authentication,
+        result = self._make_api_call(
             path="/0/public/OHLC",
             arguments={"pair": self._settings.trade_symbol, "interval": interval},
         )
         return result[self._settings.trade_symbol]
 
     def get_fee(self):
-        result = make_api_call(
-            authentication=self._authentication,
+        result = self._make_api_call(
             path="/0/private/TradeVolume",
             arguments={
                 "pair": self._settings.trade_symbol,
@@ -48,25 +99,22 @@ class Client:
         return float(fees_for_pair["fee"])
 
     def get_asset_pair(self):
-        result = make_api_call(
-            authentication=self._authentication,
+        result = self._make_api_call(
             path="/0/public/AssetPairs",
             arguments={
                 "pair": self._settings.trade_symbol,
             },
         )
-        print(result)
+        return result
 
     def get_balance(self):
-        result = make_api_call(
-            authentication=self._authentication,
+        result = self._make_api_call(
             path="/0/private/Balance",
         )
         return float(result["CHF"])
 
     def get_order_book(self) -> OrderBook:
-        result = make_api_call(
-            authentication=self._authentication,
+        result = self._make_api_call(
             path="/0/public/Depth",
             arguments={
                 "pair": self._settings.trade_symbol,
@@ -90,8 +138,7 @@ class Client:
             raise Exception("Invalid volume")
 
         expires_in_seconds = 24 * 60 * 60  # expires in 24 hours
-        result = make_api_call(
-            authentication=self._authentication,
+        result = self._make_api_call(
             path="/0/private/AddOrder",
             arguments={
                 "pair": self._settings.trade_symbol,
@@ -103,4 +150,4 @@ class Client:
                 "expiretm": f"%2b{expires_in_seconds}",
             },
         )
-        print(result)
+        return result

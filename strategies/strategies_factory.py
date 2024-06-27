@@ -1,11 +1,16 @@
 from typing import List
+from logger import create_logger
 from strategies.simple_dca import SimpleDCA
 from strategies.sma_20 import Sma20
 from strategies.strategy import Strategy
 
+logger = create_logger("StrategiesFactory")
+
 
 def make_strategy(json) -> Strategy:
     type = json["type"]
+
+    logger.info(f"Creating strategy of type {type}")
 
     if type == SimpleDCA.TYPE:
         return SimpleDCA(json)
